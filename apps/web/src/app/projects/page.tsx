@@ -90,7 +90,7 @@ export default function ProjectsPage() {
             <div className="panel-heading"><div><p className="eyebrow">YOUR LIBRARY</p><h2>All projects</h2></div><button className="subtle-button" onClick={() => void loadProjects()} disabled={loading}>↻ Refresh</button></div>
             {loading ? <div className="empty-state">Loading your projects…</div> :
               projects.length === 0 ? <div className="empty-state"><span className="empty-icon">▧</span><h3>Your studio starts here.</h3><p>Create your first project to begin organizing stories, characters, scenes and shots.</p></div> :
-              <div className="project-list">{projects.map(project => <article className="project-card" key={project.id}><div className="project-card-top"><span className="project-symbol">▣</span><span className={`status-badge status-${project.status.toLowerCase()}`}>{project.status}</span></div><h3>{project.name}</h3><p>{project.description || "No description added yet."}</p><div className="project-card-foot"><span>UPDATED {new Date(project.updatedAt).toLocaleDateString()}</span><span>OPEN ↗</span></div></article>)}</div>
+              <div className="project-list">{projects.map(project => <article className="project-card" key={project.id}><div className="project-card-top"><span className="project-symbol">▣</span><span className={`status-badge status-${project.status.toLowerCase()}`}>{project.status}</span></div><h3>{project.name}</h3><p>{project.description || "No description added yet."}</p><div className="project-card-foot"><span>UPDATED {new Date(project.updatedAt).toLocaleDateString()}</span><Link href={`/projects/${project.id}`}>OPEN ↗</Link></div></article>)}</div>
             }
           </section>
 
