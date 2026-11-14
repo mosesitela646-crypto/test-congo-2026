@@ -3,6 +3,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CreateProjectDto } from "./dto/create-project.dto";
 import { UpdateProjectDto } from "./dto/update-project.dto";
 import { CreateCharacterDto } from "./dto/create-character.dto";
+import { UpdateCharacterProfileDto } from "./dto/update-character-profile.dto";
+import { Prisma } from "@prisma/client";
 
 @Controller("projects")
 export class ProjectsController {
@@ -42,6 +44,24 @@ export class ProjectsController {
     if (!project) throw new NotFoundException("Project not found");
     return this.prisma.character.create({
       data: { projectId: id, name: dto.name, description: dto.description }
+    });
+  }
+
+  @Patch(":id/characters/:characterId/profile")
+  async updateCharacterProfile(
+    @Param("id") projectId: string,
+    @Param("characterId") characterId: string,
+    @Body() dto: UpdateCharacterProfileDto
+  ) {
+    const character = await this.prisma.character.findFirst({
+      where: { id: characterId, projectId },
+      select: { id: true }
+    });
+    if (!character) throw new NotFoundException("Character not found in this project");
+
+    return this.prisma.character.update({
+      where: { id: characterId },
+      data: { canonicalProfile: dto as Prisma.InputJsonObject }
     });
   }
 
