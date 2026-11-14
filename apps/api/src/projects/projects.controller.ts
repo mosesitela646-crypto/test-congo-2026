@@ -6,8 +6,7 @@ import { CreateCharacterDto } from "./dto/create-character.dto";
 import { UpdateCharacterProfileDto } from "./dto/update-character-profile.dto";
 import { Prisma, AssetType } from "@prisma/client";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { diskStorage } from "multer";
-import { createReadStream, existsSync, mkdirSync } from "node:fs";
+import { createReadStream, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -73,19 +72,6 @@ export class ProjectsController {
 
   @Post(":id/characters/:characterId/references")
   @UseInterceptors(FileInterceptor("file", {
-    storage: diskStorage({
-      destination: (_req, _file, callback) => {
-        const directory = path.resolve(process.cwd(), "apps/api/uploads/characters");
-        mkdirSync(directory, { recursive: true });
-        callback(null, directory);
-      },
-      filename: (_req, file, callback) => {
-        const extensionByMime: Record<string, string> = {
-          "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"
-        };
-        callback(null, `${randomUUID()}${extensionByMime[file.mimetype] || ".img"}`);
-      }
-    }),
     limits: { fileSize: 10 * 1024 * 1024, files: 1 },
     fileFilter: (_req, file, callback) => {
       const allowed = ["image/jpeg", "image/png", "image/webp"];
@@ -104,6 +90,12 @@ export class ProjectsController {
     });
     if (!character) throw new NotFoundException("Character not found in this project.");
 
+    const extensionByMime: Record<string, string> = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp" };
+    const filename = `${randomUUID()}${extensionByMime[file.mimetype]}`;
+    const directory = path.resolve(process.cwd(), "apps/api/uploads/characters");
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(path.join(directory, filename), file.buffer);
+
     const latest = await this.prisma.characterReference.aggregate({
       where: { characterId }, _max: { version: true }
     });
@@ -114,7 +106,7 @@ export class ProjectsController {
         name: `${character.name} reference v${version}`,
         type: AssetType.IMAGE,
         mimeType: file.mimetype,
-        storageKey: file.filename,
+        storageKey: filename,
         projectId,
         metadata: { originalName: file.originalname, size: file.size, category: "character-reference" }
       }
