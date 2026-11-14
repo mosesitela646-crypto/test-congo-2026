@@ -53,3 +53,25 @@
 .consistency-reference-links a{color:#9fc3f4;font-size:10px}
 .consistency-note{display:block;color:#8294ad;font-size:9px;line-height:1.6}
 @media(max-width:650px){.consistency-form{grid-template-columns:1fr}.consistency-form .primary-button{grid-column:1}}
+
+/* Storyboard scene and shot manager */
+.scene-manager{margin-top:20px}
+.scene-create-form{display:grid;grid-template-columns:1fr 1.5fr auto;gap:12px;align-items:end;margin:18px 0 22px}
+.scene-create-form label{display:grid;gap:7px;color:#c7d1df;font-size:10px}
+.scene-create-form input,.scene-create-form textarea,.shot-create-form input{width:100%;border:1px solid #334158;background:#0b111a;color:#f2f5fa;padding:10px;border-radius:5px;font:inherit;font-size:11px;outline:none}
+.scene-create-form textarea{resize:vertical}
+.scene-create-form input:focus,.scene-create-form textarea:focus,.shot-create-form input:focus{border-color:#8db7f7}
+.scene-list{display:grid;gap:13px}
+.scene-card{padding:16px;border:1px solid #29364a;background:#131b27;border-radius:7px}
+.scene-card-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.scene-number{font-size:8px;letter-spacing:1.3px;color:#8db7f7}
+.scene-card h3{font-size:14px;margin:6px 0}
+.shot-list{display:grid;gap:7px;margin:14px 0}
+.shot-row{display:grid;grid-template-columns:85px 1fr auto;gap:10px;align-items:center;padding:10px;border:1px solid #29364a;border-radius:5px}
+.shot-row span{font-size:8px;color:#8db7f7;letter-spacing:.8px}
+.shot-row strong{font-size:10px}
+.shot-row small{font-size:9px;color:#8294ad}
+.shot-create-form{display:grid;grid-template-columns:1.1fr 1.5fr 100px auto;gap:8px;margin-top:14px}
+.shot-create-form .subtle-button{white-space:nowrap}
+@media(max-width:850px){.scene-create-form{grid-template-columns:1fr 1fr}.scene-create-form .primary-button{justify-self:start}.shot-create-form{grid-template-columns:1fr 1fr}}
+@media(max-width:550px){.scene-create-form,.shot-create-form{grid-template-columns:1fr}.shot-row{grid-template-columns:65px 1fr}.shot-row small{grid-column:2}}
