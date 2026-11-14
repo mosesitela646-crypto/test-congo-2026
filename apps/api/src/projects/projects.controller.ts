@@ -7,7 +7,7 @@ import { UpdateCharacterProfileDto } from "./dto/update-character-profile.dto";
 import { Prisma, AssetType } from "@prisma/client";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { createReadStream, existsSync, mkdirSync, writeFileSync } from "node:fs";
-import path from "node:path";
+import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 
 @Controller("projects")
