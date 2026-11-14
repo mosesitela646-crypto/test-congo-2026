@@ -3,6 +3,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CreateProjectDto } from "./dto/create-project.dto";
 import { UpdateProjectDto } from "./dto/update-project.dto";
 import { CreateCharacterDto } from "./dto/create-character.dto";
+import { CreateSceneDto } from "./dto/create-scene.dto";
+import { CreateShotDto } from "./dto/create-shot.dto";
 import { UpdateCharacterProfileDto } from "./dto/update-character-profile.dto";
 import { Prisma, AssetType } from "@prisma/client";
 import { FileInterceptor } from "@nestjs/platform-express";
@@ -28,6 +30,55 @@ export class ProjectsController {
       orderBy: { updatedAt: "desc" },
       skip: (safePage - 1) * safeLimit,
       take: safeLimit
+    });
+  }
+
+
+  @Get(":id/scenes")
+  async findScenes(@Param("id") projectId: string) {
+    const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
+    if (!project) throw new NotFoundException("Project not found.");
+    return this.prisma.scene.findMany({
+      where: { projectId },
+      include: { shots: { orderBy: { order: "asc" } } },
+      orderBy: { order: "asc" }
+    });
+  }
+
+  @Post(":id/scenes")
+  async createScene(@Param("id") projectId: string, @Body() dto: CreateSceneDto) {
+    const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
+    if (!project) throw new NotFoundException("Project not found.");
+    if (dto.episodeId) {
+      const episode = await this.prisma.episode.findFirst({
+        where: { id: dto.episodeId, projectId }, select: { id: true }
+      });
+      if (!episode) throw new BadRequestException("The selected episode does not belong to this project.");
+    }
+    return this.prisma.scene.create({
+      data: {
+        projectId, title: dto.title, description: dto.description,
+        order: dto.order, episodeId: dto.episodeId
+      },
+      include: { shots: true }
+    });
+  }
+
+  @Post(":id/scenes/:sceneId/shots")
+  async createShot(
+    @Param("id") projectId: string,
+    @Param("sceneId") sceneId: string,
+    @Body() dto: CreateShotDto
+  ) {
+    const scene = await this.prisma.scene.findFirst({
+      where: { id: sceneId, projectId }, select: { id: true }
+    });
+    if (!scene) throw new NotFoundException("Scene not found in this project.");
+    return this.prisma.shot.create({
+      data: {
+        sceneId, title: dto.title, description: dto.description,
+        order: dto.order, durationMs: dto.durationMs
+      }
     });
   }
 
