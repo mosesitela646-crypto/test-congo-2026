@@ -51,7 +51,9 @@ export default function ProjectWorkspacePage() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false);\n  const [referenceFile, setReferenceFile] = useState<File | null>(null);\n  const [uploadingReference, setUploadingReference] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [uploadingReference, setUploadingReference] = useState(false);
   const [error, setError] = useState("");
   const [profileMessage, setProfileMessage] = useState("");
 
