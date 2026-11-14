@@ -1,110 +1,132 @@
 generator client {
- provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
+
 datasource db {
- provider = "postgresql"
- url = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
-enum ProjectStatus { DRAFT ACTIVE ARCHIVED }
-enum AssetType { IMAGE VIDEO AUDIO DOCUMENT MODEL OTHER }
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  MODEL
+  OTHER
+}
+
 model Project {
- id String @id @default(cuid())
- name String
- description String?
- status ProjectStatus @default(DRAFT)
- seasons Season[]
- episodes Episode[]
- scenes Scene[]
- characters Character[]
- assets Asset[]
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(DRAFT)
+  seasons     Season[]
+  episodes    Episode[]
+  scenes      Scene[]
+  characters  Character[]
+  assets      Asset[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }
+
 model Season {
- id String @id @default(cuid())
- name String
- number Int
- projectId String
- project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
- episodes Episode[]
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
- @@unique([projectId,number])
+  id        String    @id @default(cuid())
+  name      String
+  number    Int
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  episodes  Episode[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  @@unique([projectId, number])
 }
+
 model Episode {
- id String @id @default(cuid())
- title String
- number Int
- projectId String
- seasonId String?
- project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
- season Season? @relation(fields:[seasonId],references:[id],onDelete:SetNull)
- scenes Scene[]
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
- @@unique([projectId,number])
+  id        String    @id @default(cuid())
+  title     String
+  number    Int
+  projectId String
+  seasonId  String?
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  season    Season?   @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  scenes    Scene[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  @@unique([projectId, number])
 }
+
 model Scene {
- id String @id @default(cuid())
- title String
- description String?
- order Int
- projectId String
- episodeId String?
- project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
- episode Episode? @relation(fields:[episodeId],references:[id],onDelete:SetNull)
- shots Shot[]
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
- @@index([projectId,order])
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  order       Int
+  projectId   String
+  episodeId   String?
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  episode     Episode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  shots       Shot[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([projectId, order])
 }
+
 model Shot {
- id String @id @default(cuid())
- title String
- description String?
- order Int
- durationMs Int?
- sceneId String
- scene Scene @relation(fields:[sceneId],references:[id],onDelete:Cascade)
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
- @@index([sceneId,order])
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  order       Int
+  durationMs  Int?
+  sceneId     String
+  scene       Scene    @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([sceneId, order])
 }
+
 model Character {
- id String @id @default(cuid())
- name String
- description String?
- canonicalProfile Json?
- projectId String
- project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
- references CharacterReference[]
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
- @@index([projectId,name])
+  id               String               @id @default(cuid())
+  name             String
+  description      String?
+  canonicalProfile Json?
+  projectId        String
+  project          Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  references       CharacterReference[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  @@index([projectId, name])
 }
+
 model CharacterReference {
- id String @id @default(cuid())
- label String
- version Int @default(1)
- description String?
- assetId String?
- characterId String
- character Character @relation(fields:[characterId],references:[id],onDelete:Cascade)
- asset Asset? @relation(fields:[assetId],references:[id],onDelete:SetNull)
- createdAt DateTime @default(now())
- @@unique([characterId,version])
+  id          String    @id @default(cuid())
+  label       String
+  version     Int       @default(1)
+  description String?
+  assetId     String?
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  asset       Asset?    @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  @@unique([characterId, version])
 }
+
 model Asset {
- id String @id @default(cuid())
- name String
- type AssetType
- mimeType String?
- storageKey String
- checksum String?
- metadata Json?
- projectId String
- project Project @relation(fields:[projectId],references:[id],onDelete:Cascade)
- characterReferences CharacterReference[]
- createdAt DateTime @default(now())
- @@index([projectId,type])
+  id                  String               @id @default(cuid())
+  name                String
+  type                AssetType
+  mimeType            String?
+  storageKey          String
+  checksum            String?
+  metadata            Json?
+  projectId           String
+  project             Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  characterReferences CharacterReference[]
+  createdAt           DateTime             @default(now())
+  @@index([projectId, type])
 }

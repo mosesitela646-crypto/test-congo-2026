@@ -1,0 +1,48 @@
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { CreateProjectDto } from "./dto/create-project.dto";
+import { UpdateProjectDto } from "./dto/update-project.dto";
+
+@Controller("projects")
+export class ProjectsController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Post()
+  create(@Body() dto: CreateProjectDto) {
+    return this.prisma.project.create({ data: dto });
+  }
+
+  @Get()
+  findAll(@Query("page", new ParseIntPipe({ optional: true })) page = 1,
+         @Query("limit", new ParseIntPipe({ optional: true })) limit = 20) {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(100, Math.max(1, limit));
+    return this.prisma.project.findMany({
+      orderBy: { updatedAt: "desc" },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit
+    });
+  }
+
+  @Get(":id")
+  async findOne(@Param("id") id: string) {
+    const project = await this.prisma.project.findUnique({ where: { id } });
+    if (!project) throw new NotFoundException("Project not found");
+    return project;
+  }
+
+  @Patch(":id")
+  async update(@Param("id") id: string, @Body() dto: UpdateProjectDto) {
+    const exists = await this.prisma.project.findUnique({ where: { id }, select: { id: true } });
+    if (!exists) throw new NotFoundException("Project not found");
+    return this.prisma.project.update({ where: { id }, data: dto });
+  }
+
+  @Delete(":id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param("id") id: string) {
+    const exists = await this.prisma.project.findUnique({ where: { id }, select: { id: true } });
+    if (!exists) throw new NotFoundException("Project not found");
+    await this.prisma.project.delete({ where: { id } });
+  }
+}
