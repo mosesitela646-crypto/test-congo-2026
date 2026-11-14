@@ -15,6 +15,8 @@ type IdentityProfile = {
   defaultOutfit?: string; voiceDescription?: string; consistencyNotes?: string;
 };
 type CharacterReference = { id: string; label: string; version: number; asset: { id: string; mimeType: string | null } | null };
+type Shot = { id: string; title: string; description: string | null; order: number; durationMs: number | null };
+type Scene = { id: string; title: string; description: string | null; order: number; shots: Shot[] };
 type Character = {
   id: string; name: string; description: string | null; createdAt: string;
   canonicalProfile: IdentityProfile | null; references: CharacterReference[];
@@ -45,6 +47,12 @@ export default function ProjectWorkspacePage() {
   const id = params.id;
   const [project, setProject] = useState<Project | null>(null);
   const [characters, setCharacters] = useState<Character[]>([]);
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [sceneTitle, setSceneTitle] = useState("");
+  const [sceneDescription, setSceneDescription] = useState("");
+  const [savingScene, setSavingScene] = useState(false);
+  const [shotDrafts, setShotDrafts] = useState<Record<string, { title: string; description: string; duration: string }>>({});
+  const [savingShotFor, setSavingShotFor] = useState("");
   const [selectedCharacterId, setSelectedCharacterId] = useState("");
   const [profile, setProfile] = useState<IdentityProfile>(emptyProfile);
   const [name, setName] = useState("");
@@ -66,12 +74,13 @@ export default function ProjectWorkspacePage() {
     setLoading(true);
     setError("");
     try {
-      const [projectResponse, characterResponse] = await Promise.all([
+      const [projectResponse, characterResponse, scenesResponse] = await Promise.all([
         fetch(`${API_URL}/api/projects/${id}`, { cache: "no-store" }),
         fetch(`${API_URL}/api/projects/${id}/characters`, { cache: "no-store" })
       ]);
       if (!projectResponse.ok) throw new Error(projectResponse.status === 404 ? "Project not found." : "Could not load project.");
       if (!characterResponse.ok) throw new Error("Could not load project characters.");
+      if (!scenesResponse.ok) throw new Error("Could not load project scenes.");
       setProject(await projectResponse.json());
       const loadedCharacters: Character[] = await characterResponse.json();
       setCharacters(loadedCharacters);
@@ -179,6 +188,53 @@ export default function ProjectWorkspacePage() {
   }
 
 
+
+  async function addScene(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (sceneTitle.trim().length < 2) return;
+    setSavingScene(true); setError("");
+    try {
+      const response = await fetch(`${API_URL}/api/projects/${id}/scenes`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: sceneTitle.trim(), description: sceneDescription.trim() || undefined, order: scenes.length + 1 })
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.message?.[0] || body?.message || "Could not create scene.");
+      }
+      setSceneTitle(""); setSceneDescription("");
+      await loadWorkspace();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create scene.");
+    } finally { setSavingScene(false); }
+  }
+
+  async function addShot(event: FormEvent<HTMLFormElement>, scene: Scene) {
+    event.preventDefault();
+    const draft = shotDrafts[scene.id] || { title: "", description: "", duration: "" };
+    if (draft.title.trim().length < 2) return;
+    setSavingShotFor(scene.id); setError("");
+    try {
+      const response = await fetch(`${API_URL}/api/projects/${id}/scenes/${scene.id}/shots`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: draft.title.trim(),
+          description: draft.description.trim() || undefined,
+          order: scene.shots.length + 1,
+          durationMs: draft.duration ? Math.round(Number(draft.duration) * 1000) : undefined
+        })
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.message?.[0] || body?.message || "Could not create shot.");
+      }
+      setShotDrafts(current => ({ ...current, [scene.id]: { title: "", description: "", duration: "" } }));
+      await loadWorkspace();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create shot.");
+    } finally { setSavingShotFor(""); }
+  }
+
   async function buildConsistencyPrompt(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedCharacterId) return;
@@ -273,6 +329,32 @@ export default function ProjectWorkspacePage() {
           </div>}
         </section>}
 
+
+
+        <section className="workspace-panel identity-editor scene-manager">
+          <div className="workspace-panel-heading"><div><p className="eyebrow">STORYBOARD / PRODUCTION</p><h2>Scenes & shots</h2></div><span className="workspace-count">{scenes.length} SCENES</span></div>
+          <p className="workspace-help">Break the production into scenes, then divide each scene into individual camera shots. This creates the structure that the storyboard and video pipeline will use.</p>
+          <form className="scene-create-form" onSubmit={addScene}>
+            <label>Scene title<input value={sceneTitle} onChange={e => setSceneTitle(e.target.value)} placeholder="e.g. 01 — Amara arrives in the city" required /></label>
+            <label>Scene description<textarea rows={2} value={sceneDescription} onChange={e => setSceneDescription(e.target.value)} placeholder="What happens in this scene?" /></label>
+            <button className="primary-button" disabled={savingScene}>{savingScene ? "Creating scene…" : "＋ Create scene"}</button>
+          </form>
+          {scenes.length === 0 ? <div className="workspace-empty"><span>▤</span><h3>No scenes yet</h3><p>Create the first scene to begin building your storyboard.</p></div> :
+            <div className="scene-list">{scenes.map(scene => {
+              const draft = shotDrafts[scene.id] || { title: "", description: "", duration: "" };
+              return <article className="scene-card" key={scene.id}>
+                <div className="scene-card-heading"><div><span className="scene-number">SCENE {String(scene.order).padStart(2, "0")}</span><h3>{scene.title}</h3></div><span className="workspace-count">{scene.shots.length} SHOTS</span></div>
+                {scene.description && <p className="workspace-help">{scene.description}</p>}
+                {scene.shots.length > 0 && <div className="shot-list">{scene.shots.map(shot => <div className="shot-row" key={shot.id}><span>SHOT {String(shot.order).padStart(2, "0")}</span><strong>{shot.title}</strong><small>{shot.durationMs ? `${(shot.durationMs / 1000).toFixed(1)} sec` : "Duration not set"}</small></div>)}</div>}
+                <form className="shot-create-form" onSubmit={event => void addShot(event, scene)}>
+                  <input aria-label="Shot title" value={draft.title} onChange={e => setShotDrafts(current => ({ ...current, [scene.id]: { ...draft, title: e.target.value } }))} placeholder="New shot title, e.g. Wide establishing shot" required />
+                  <input aria-label="Shot description" value={draft.description} onChange={e => setShotDrafts(current => ({ ...current, [scene.id]: { ...draft, description: e.target.value } }))} placeholder="Camera angle, action, framing…" />
+                  <input aria-label="Shot duration in seconds" type="number" min="0.1" max="600" step="0.1" value={draft.duration} onChange={e => setShotDrafts(current => ({ ...current, [scene.id]: { ...draft, duration: e.target.value } }))} placeholder="Seconds" />
+                  <button className="subtle-button" disabled={savingShotFor === scene.id}>{savingShotFor === scene.id ? "Saving…" : "＋ Add shot"}</button>
+                </form>
+              </article>;
+            })}</div>}
+        </section>
 
         {selectedCharacter && <section className="workspace-panel identity-editor consistency-builder">
           <div className="workspace-panel-heading"><div><p className="eyebrow">SCENE PREPARATION</p><h2>Character Consistency Kit</h2></div><span className="workspace-count">PROMPT BUILDER</span></div>
