@@ -34,6 +34,12 @@ Write-Host "Generating Prisma Client..." -ForegroundColor Yellow
 npm run db:generate
 if ($LASTEXITCODE -ne 0) { throw "Prisma Client generation failed." }
 
+# Load DATABASE_URL from the repository root .env into this process so Prisma
+# can read it even though npm runs the Prisma CLI from apps/api.
+$databaseLine = Get-Content ".env" | Where-Object { $_ -match '^\\s*DATABASE_URL\\s*=' } | Select-Object -First 1
+if (-not $databaseLine) { throw "DATABASE_URL is missing from the root .env file." }
+$env:DATABASE_URL = ($databaseLine -replace '^\\s*DATABASE_URL\\s*=\\s*', '').Trim().Trim('"').Trim("'")
+
 Write-Host "Checking database schema..." -ForegroundColor Yellow
 npm run db:validate
 if ($LASTEXITCODE -ne 0) { throw "Prisma schema validation failed." }
