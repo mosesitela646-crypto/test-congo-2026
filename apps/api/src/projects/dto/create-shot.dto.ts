@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from "class-validator";
+import { IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
 
 export class CreateShotDto {
   @IsString() @MinLength(2) @MaxLength(160)
@@ -10,6 +10,6 @@ export class CreateShotDto {
   @IsInt() @Min(1)
   order!: number;
 
-  @IsOptional() @IsInt() @Min(1) @MaxLength(8)
+  @IsOptional() @IsInt() @Min(1) @Max(600000)
   durationMs?: number;
 }
