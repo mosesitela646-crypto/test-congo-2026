@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, NotFoundException,
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateProjectDto } from "./dto/create-project.dto";
 import { UpdateProjectDto } from "./dto/update-project.dto";
+import { CreateCharacterDto } from "./dto/create-character.dto";
 
 @Controller("projects")
 export class ProjectsController {
@@ -24,9 +25,32 @@ export class ProjectsController {
     });
   }
 
+  @Get(":id/characters")
+  async findCharacters(@Param("id") id: string) {
+    const project = await this.prisma.project.findUnique({ where: { id }, select: { id: true } });
+    if (!project) throw new NotFoundException("Project not found");
+    return this.prisma.character.findMany({
+      where: { projectId: id },
+      include: { references: { orderBy: { version: "desc" } } },
+      orderBy: { createdAt: "asc" }
+    });
+  }
+
+  @Post(":id/characters")
+  async createCharacter(@Param("id") id: string, @Body() dto: CreateCharacterDto) {
+    const project = await this.prisma.project.findUnique({ where: { id }, select: { id: true } });
+    if (!project) throw new NotFoundException("Project not found");
+    return this.prisma.character.create({
+      data: { projectId: id, name: dto.name, description: dto.description }
+    });
+  }
+
   @Get(":id")
   async findOne(@Param("id") id: string) {
-    const project = await this.prisma.project.findUnique({ where: { id } });
+    const project = await this.prisma.project.findUnique({
+      where: { id },
+      include: { _count: { select: { seasons: true, episodes: true, scenes: true, characters: true, assets: true } } }
+    });
     if (!project) throw new NotFoundException("Project not found");
     return project;
   }
