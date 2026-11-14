@@ -14,9 +14,10 @@ type IdentityProfile = {
   hair?: string; build?: string; distinguishingFeatures?: string; personality?: string;
   defaultOutfit?: string; voiceDescription?: string; consistencyNotes?: string;
 };
+type CharacterReference = { id: string; label: string; version: number; asset: { id: string; mimeType: string | null } | null };
 type Character = {
   id: string; name: string; description: string | null; createdAt: string;
-  canonicalProfile: IdentityProfile | null;
+  canonicalProfile: IdentityProfile | null; references: CharacterReference[];
 };
 const emptyProfile: IdentityProfile = {
   role: "", age: "", skinTone: "", face: "", eyes: "", hair: "", build: "",
@@ -50,7 +51,7 @@ export default function ProjectWorkspacePage() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);\n  const [referenceFile, setReferenceFile] = useState<File | null>(null);\n  const [uploadingReference, setUploadingReference] = useState(false);
   const [error, setError] = useState("");
   const [profileMessage, setProfileMessage] = useState("");
 
@@ -133,6 +134,43 @@ export default function ProjectWorkspacePage() {
     } finally { setSavingProfile(false); }
   }
 
+
+  async function uploadReference(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedCharacterId || !referenceFile) return;
+    setUploadingReference(true); setError(""); setProfileMessage("");
+    try {
+      const formData = new FormData();
+      formData.append("file", referenceFile);
+      const response = await fetch(`${API_URL}/api/projects/${id}/characters/${selectedCharacterId}/references`, {
+        method: "POST", body: formData
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.message?.[0] || body?.message || "Could not upload image reference.");
+      }
+      setReferenceFile(null);
+      const input = document.getElementById("character-reference-file") as HTMLInputElement | null;
+      if (input) input.value = "";
+      setProfileMessage("Image reference uploaded and saved.");
+      await loadWorkspace();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to upload image reference.");
+    } finally { setUploadingReference(false); }
+  }
+
+  async function makeMasterReference(referenceId: string) {
+    setError(""); setProfileMessage("");
+    try {
+      const response = await fetch(`${API_URL}/api/projects/${id}/characters/${selectedCharacterId}/references/${referenceId}/master`, { method: "PATCH" });
+      if (!response.ok) throw new Error("Could not set the master reference.");
+      setProfileMessage("Master visual reference updated.");
+      await loadWorkspace();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update master reference.");
+    }
+  }
+
   if (loading && !project) return <main className="workspace-state">Loading project workspace…</main>;
   if (!project) return <main className="workspace-state"><p>{error || "Project not found."}</p><Link href="/projects">← Back to projects</Link></main>;
 
@@ -183,6 +221,23 @@ export default function ProjectWorkspacePage() {
             </form>
           </aside>
         </div>
+
+        {selectedCharacter && <section className="workspace-panel identity-editor">
+          <div className="workspace-panel-heading"><div><p className="eyebrow">VISUAL IDENTITY</p><h2>{selectedCharacter.name} · Reference images</h2></div><span className="workspace-count">{selectedCharacter.references?.length || 0} REFERENCES</span></div>
+          <p className="workspace-help">Import an image generated with ChatGPT or another image tool. The first uploaded image becomes the master reference; you can change it later.</p>
+          <form className="reference-upload-form" onSubmit={uploadReference}>
+            <input id="character-reference-file" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => setReferenceFile(event.target.files?.[0] || null)} />
+            <button className="primary-button" disabled={!referenceFile || uploadingReference}>{uploadingReference ? "Uploading image…" : "＋ Upload visual reference"}</button>
+            <small>JPG, PNG or WebP · Maximum 10 MB</small>
+          </form>
+          {(selectedCharacter.references || []).length > 0 && <div className="reference-gallery">
+            {selectedCharacter.references.map(reference => <article className="reference-card" key={reference.id}>
+              {reference.asset && <img src={`${API_URL}/api/projects/${id}/assets/${reference.asset.id}/file`} alt={`${selectedCharacter.name} visual reference ${reference.version}`} />}
+              <div><strong>Reference v{reference.version}</strong><span>{reference.label === "MASTER_REFERENCE" ? "MASTER REFERENCE" : "VISUAL REFERENCE"}</span></div>
+              {reference.label !== "MASTER_REFERENCE" && <button type="button" className="subtle-button" onClick={() => void makeMasterReference(reference.id)}>Set as master</button>}
+            </article>)}
+          </div>}
+        </section>}
 
         {selectedCharacter && <section className="workspace-panel identity-editor">
           <div className="workspace-panel-heading"><div><p className="eyebrow">CANONICAL CHARACTER PROFILE</p><h2>{selectedCharacter.name} · Identity</h2></div><span className="workspace-count">PERSISTENT PROFILE</span></div>
