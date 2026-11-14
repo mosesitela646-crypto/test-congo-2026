@@ -61,7 +61,7 @@ export class ProjectsController {
 
     return this.prisma.character.update({
       where: { id: characterId },
-      data: { canonicalProfile: dto as Prisma.InputJsonObject }
+      data: { canonicalProfile: dto as unknown as Prisma.InputJsonObject }
     });
   }
 
