@@ -27,3 +27,15 @@
 .identity-actions{grid-column:1/-1;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .success-message{font-size:10px;color:#9edbb3}
 @media(max-width:650px){.identity-form{grid-template-columns:1fr}}
+
+/* Character visual reference library */
+.reference-upload-form{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0}
+.reference-upload-form input{max-width:100%;color:#aebbd0;font-size:11px}
+.reference-upload-form small{width:100%;color:#8294ad;font-size:9px}
+.reference-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:18px}
+.reference-card{overflow:hidden;border:1px solid #29364a;background:#131b27;border-radius:7px;padding:10px;display:grid;gap:9px}
+.reference-card img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:4px;background:#0b111a}
+.reference-card div{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.reference-card strong{font-size:10px;color:#e5ebf5}
+.reference-card span{font-size:8px;letter-spacing:.7px;color:#9fc3f4}
+.reference-card .subtle-button{justify-self:start}
