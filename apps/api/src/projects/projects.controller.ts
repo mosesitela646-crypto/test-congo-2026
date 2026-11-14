@@ -38,7 +38,7 @@ export class ProjectsController {
     if (!project) throw new NotFoundException("Project not found");
     return this.prisma.character.findMany({
       where: { projectId: id },
-      include: { references: { orderBy: { version: "desc" } } },
+      include: { references: { include: { asset: true }, orderBy: { version: "desc" } } },
       orderBy: { createdAt: "asc" }
     });
   }
