@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.*
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Build and test output
+.next/
+out/
+dist/
+build/
+coverage/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+
+# Local databases and runtime data
+*.sqlite
+*.sqlite3
+*.db
+uploads/
+storage/
+tmp/
+temp/
+
+# AI models and generated media
+models/
+checkpoints/
+loras/
+vae/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.gguf
+generated/
+renders/
+media-output/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
