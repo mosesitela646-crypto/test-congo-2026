@@ -2,11 +2,11 @@
 
 An open-source-first, modular AI audiovisual production studio for the complete creative pipeline: story development, pre-production, image and video generation, voice, editing, and export.
 
-> **Status:** Foundation stage. This repository currently establishes the product direction and architecture. The production modules are not yet implemented.
+> **Status:** Foundation implementation. Web workspace, API foundation, project CRUD endpoints, AI service health endpoints, and local development setup are being built incrementally. Full production and model-generation workflows are not yet implemented.
 
 ## Product vision
 
-Congo AI Studio will bring these workflows into one coherent workspace:
+Congo AI Studio brings these workflows into one coherent workspace:
 
 - Project, season, episode, scene, and shot management
 - Story and screenplay development
@@ -24,80 +24,60 @@ Congo AI Studio will bring these workflows into one coherent workspace:
 
 | Layer | Technology |
 |---|---|
-| Web | Next.js, TypeScript, Tailwind CSS, shadcn/ui |
+| Web | Next.js, TypeScript |
 | Application API | NestJS |
-| AI services | Python, FastAPI, PyTorch |
-| AI workflows | ComfyUI |
-| Video generation | Wan 2.2 |
-| Image generation | ComfyUI-compatible diffusion models |
-| Voice | Piper TTS; alternatives evaluated separately |
-| Media processing | FFmpeg |
+| Validation | class-validator, class-transformer |
+| AI services | Python, FastAPI, PyTorch (runtime integration pending) |
+| AI workflows | ComfyUI (integration pending) |
+| Video generation | Wan 2.2 (integration pending) |
+| Voice | Piper TTS (integration pending) |
+| Media processing | FFmpeg (integration pending) |
 | Database | PostgreSQL, Prisma |
-| Background jobs | Redis, BullMQ |
+| Background jobs | Redis, BullMQ (integration pending) |
 | Version control | Git and GitHub |
 
-This is the target stack, not a claim that every component is installed or deployed. Model versions, hardware support, and licenses must be validated before use.
+## Current implementation
+
+- [x] Repository documentation and architecture baseline
+- [x] Next.js web workspace foundation
+- [x] NestJS API foundation and health endpoint
+- [x] Initial Prisma domain schema
+- [x] Project create, list, read, update, and delete endpoints
+- [x] FastAPI health and conservative capability endpoints
+- [x] Local PostgreSQL and Redis Compose configuration
+- [x] Windows startup and stop scripts
+- [ ] Local builds and runtime tests (must be run on a development machine)
+- [ ] Database migration and API integration tests
+- [ ] Authentication and authorization
+- [ ] AI model and workflow integrations
+
+## Start on Windows
+
+Requirements: Node.js 20.11+, Python 3.11+, Docker Desktop (running), and Git.
+
+Clone this repository, open PowerShell in its root folder, and run:
+
+```powershell
+npm run setup:windows
+```
+
+Then open http://localhost:3000.
+
+Stop local services with:
+
+```powershell
+npm run stop:windows
+```
+
+Detailed instructions: [Development Setup](docs/architecture/development-setup.md).
 
 ## Architecture direction
-
-- **Web app:** creative workspaces and user experience.
-- **API:** project domain, persistence, authorization, and orchestration.
-- **AI services:** inference and media-generation adapters.
-- **Workflow engine:** ComfyUI workflow execution.
-- **Job system:** asynchronous generation and processing.
-- **Media pipeline:** validation, transformation, editing, and export.
 
 Planned domain hierarchy:
 
 `Project → Season (optional) → Episode (optional) → Scene → Shot`
 
-## Planned modules
-
-1. Dashboard
-2. Project Management
-3. Story Studio
-4. Character Studio
-5. Environment Studio
-6. Storyboard Studio
-7. Image Studio
-8. Video Studio
-9. Voice Studio
-10. Audio Studio
-11. Editing Studio
-12. Asset Library
-13. AI Model Manager
-14. GPU Infrastructure Manager
-15. Export Studio
-
-## Target repository layout
-
-```text
-apps/
-  web/
-  api/
-services/
-  ai/
-packages/
-  shared/
-infrastructure/
-docs/
-  architecture/
-  decisions/
-scripts/
-```
-
-Directories will be introduced as their corresponding implementation begins.
-
-## Engineering principles
-
-1. Inspect the existing code before changing it.
-2. Build one coherent, testable feature at a time.
-3. Keep modules separated and interfaces explicit.
-4. Detect available hardware, VRAM, quotas, and runtime capabilities before loading models.
-5. Prefer free and open-source components; paid services must never be mandatory.
-6. Never commit secrets, credentials, private datasets, generated media, or model weights.
-7. Test and verify behavior before calling a feature complete.
-8. Record important architectural decisions.
+The system separates the web application, application API, AI inference service, workflow execution, job processing, and media pipeline.
 
 ## Security
 

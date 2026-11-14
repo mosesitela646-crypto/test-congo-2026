@@ -1,38 +1,55 @@
-# Development Setup
+# Development Setup (Windows)
 
-## Prerequisites
+## One-time prerequisites
 
-- Node.js 20.11 or newer
-- npm workspaces
+- Windows 10/11 64-bit
+- Node.js 20.11 or newer (Node.js 24 LTS/current supported releases are suitable)
 - Python 3.11 or newer
-- Docker Engine with Docker Compose (optional; for PostgreSQL and Redis)
+- Docker Desktop with WSL 2 backend enabled
+- Git
 
-## Infrastructure
+## Start the studio
 
-Copy `.env.example` to `.env`, then run `docker compose up -d`. The default database password is for local development only; change it before exposing services beyond your machine.
+1. Clone the repository.
+2. Open the repository folder in File Explorer.
+3. Open PowerShell in that folder.
+4. Run:
 
-## Install and run
-
-```bash
-npm install
-npm run dev:web
-npm run dev:api
+```powershell
+npm run setup:windows
 ```
 
-Run the AI service in another terminal:
+The script creates a local `.env`, starts PostgreSQL and Redis, installs JavaScript packages, generates Prisma Client, validates the Prisma schema, and opens separate terminals for the web app, API, and AI service.
 
-```bash
-cd services/ai
-python -m venv .venv
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
+The first startup requires an internet connection to install packages. Docker Desktop must already be running. The AI service installs its small Python dependencies on first launch. No AI model weights are downloaded.
 
-## Local endpoints
+## Open the local studio
 
 - Web: http://localhost:3000
 - API health: http://localhost:4000/api/health
 - AI health: http://localhost:8000/health
 - AI capabilities: http://localhost:8000/capabilities
 
-The Prisma schema is at `apps/api/prisma/schema.prisma`. Prisma CLI/client integration and migrations are intentionally not yet enabled; validate the database connection and schema before creating the first migration.
+## Stop the studio
+
+Run this from the repository folder:
+
+```powershell
+npm run stop:windows
+```
+
+This stops app processes and the local database/cache containers. Data remains in Docker volumes.
+
+## Manual checks
+
+```powershell
+npm run typecheck:web
+npm run typecheck:api
+npm run build:web
+npm run build:api
+npm run db:validate
+```
+
+## Important
+
+The startup script does not create a database migration or production data. The Prisma schema must be validated before the first migration. Do not expose the local development database to a public network. Do not put real secrets in Git.
