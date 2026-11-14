@@ -6,7 +6,7 @@ import { ProjectsModule } from "./projects/projects.module";
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: "../../.env" }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: ".env" }),
     PrismaModule,
     HealthModule,
     ProjectsModule
