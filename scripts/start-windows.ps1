@@ -7,7 +7,7 @@ Write-Host "=== Congo AI Studio: Windows startup ===" -ForegroundColor Cyan
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
   throw "Node.js is missing. Install Node.js 20.11 or newer, then run this script again."
 }
-$nodeMajor = [int]((node -p "process.versions.node.Split('.')[0]"))
+$nodeMajor = [int]((node -p "process.versions.node.split('.')[0]"))
 if ($nodeMajor -lt 20) { throw "Node.js 20 or newer is required." }
 
 if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
