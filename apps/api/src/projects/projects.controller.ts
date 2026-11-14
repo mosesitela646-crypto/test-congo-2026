@@ -176,9 +176,9 @@ export class ProjectsController {
       ["Body build", profile.build], ["Distinctive features", profile.distinguishingFeatures],
       ["Personality", profile.personality]
     ];
-    const identity = traits
-      .filter((item): item is [string, string] => typeof item[1] === "string" && item[1].trim().length > 0)
-      .map(([label, value]) => `- ${label}: ${value}`);
+    const identity = traits.flatMap(([label, value]) =>
+      typeof value === "string" && value.trim().length > 0 ? [`- ${label}: ${value}`] : []
+    );
     const continuity = typeof profile.consistencyNotes === "string" ? profile.consistencyNotes : "";
     const signatureOutfit = typeof profile.defaultOutfit === "string" ? profile.defaultOutfit : "";
     const prompt = [
