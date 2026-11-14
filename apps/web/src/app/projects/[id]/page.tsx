@@ -54,6 +54,11 @@ export default function ProjectWorkspacePage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [uploadingReference, setUploadingReference] = useState(false);
+  const [sceneInputs, setSceneInputs] = useState({ scene: "", outfit: "", action: "", environment: "", camera: "", style: "cinematic photorealism" });
+  const [consistencyPrompt, setConsistencyPrompt] = useState("");
+  const [consistencyReferences, setConsistencyReferences] = useState<string[]>([]);
+  const [buildingPrompt, setBuildingPrompt] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [error, setError] = useState("");
   const [profileMessage, setProfileMessage] = useState("");
 
@@ -173,6 +178,33 @@ export default function ProjectWorkspacePage() {
     }
   }
 
+
+  async function buildConsistencyPrompt(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedCharacterId) return;
+    setBuildingPrompt(true); setError(""); setConsistencyPrompt(""); setCopiedPrompt(false);
+    try {
+      const query = new URLSearchParams(sceneInputs);
+      const response = await fetch(`${API_URL}/api/projects/${id}/characters/${selectedCharacterId}/consistency-kit?${query.toString()}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Could not prepare the character consistency prompt.");
+      const result = await response.json();
+      setConsistencyPrompt(result.prompt || "");
+      setConsistencyReferences((result.references || []).map((reference: { url: string }) => `${API_URL}${reference.url}`));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to prepare consistency prompt.");
+    } finally { setBuildingPrompt(false); }
+  }
+
+  async function copyConsistencyPrompt() {
+    if (!consistencyPrompt) return;
+    try {
+      await navigator.clipboard.writeText(consistencyPrompt);
+      setCopiedPrompt(true);
+    } catch {
+      setError("Clipboard access was blocked. Select and copy the prompt manually.");
+    }
+  }
+
   if (loading && !project) return <main className="workspace-state">Loading project workspace…</main>;
   if (!project) return <main className="workspace-state"><p>{error || "Project not found."}</p><Link href="/projects">← Back to projects</Link></main>;
 
@@ -238,6 +270,28 @@ export default function ProjectWorkspacePage() {
               <div><strong>Reference v{reference.version}</strong><span>{reference.label === "MASTER_REFERENCE" ? "MASTER REFERENCE" : "VISUAL REFERENCE"}</span></div>
               {reference.label !== "MASTER_REFERENCE" && <button type="button" className="subtle-button" onClick={() => void makeMasterReference(reference.id)}>Set as master</button>}
             </article>)}
+          </div>}
+        </section>}
+
+
+        {selectedCharacter && <section className="workspace-panel identity-editor consistency-builder">
+          <div className="workspace-panel-heading"><div><p className="eyebrow">SCENE PREPARATION</p><h2>Character Consistency Kit</h2></div><span className="workspace-count">PROMPT BUILDER</span></div>
+          <p className="workspace-help">Describe the new shot. Congo AI Studio combines these scene details with the saved character identity and reference-image links to prepare a reusable prompt.</p>
+          <form className="consistency-form" onSubmit={buildConsistencyPrompt}>
+            <label>Scene description<input value={sceneInputs.scene} onChange={e => setSceneInputs(v => ({ ...v, scene: e.target.value }))} placeholder="Amara walks through a busy Lubumbashi street at sunset" /></label>
+            <label>Outfit for this scene<input value={sceneInputs.outfit} onChange={e => setSceneInputs(v => ({ ...v, outfit: e.target.value }))} placeholder="Blue denim jacket, black trousers…" /></label>
+            <label>Action / expression<input value={sceneInputs.action} onChange={e => setSceneInputs(v => ({ ...v, action: e.target.value }))} placeholder="Walking confidently, slight smile…" /></label>
+            <label>Environment<input value={sceneInputs.environment} onChange={e => setSceneInputs(v => ({ ...v, environment: e.target.value }))} placeholder="Downtown Lubumbashi, late afternoon…" /></label>
+            <label>Camera / composition<input value={sceneInputs.camera} onChange={e => setSceneInputs(v => ({ ...v, camera: e.target.value }))} placeholder="Medium shot, eye-level, 35mm lens…" /></label>
+            <label>Visual style<input value={sceneInputs.style} onChange={e => setSceneInputs(v => ({ ...v, style: e.target.value }))} placeholder="Cinematic photorealism…" /></label>
+            <button className="primary-button" disabled={buildingPrompt}>{buildingPrompt ? "Preparing consistency kit…" : "＋ Prepare scene prompt"}</button>
+          </form>
+          {consistencyPrompt && <div className="consistency-result">
+            <div className="workspace-panel-heading"><strong>Generated consistency prompt</strong><button type="button" className="subtle-button" onClick={() => void copyConsistencyPrompt()}>{copiedPrompt ? "Copied ✓" : "Copy prompt"}</button></div>
+            <textarea readOnly rows={15} value={consistencyPrompt} />
+            <p className="workspace-help">Reference image links are included below. Attach the master image manually in your image-generation tool for now.</p>
+            <div className="consistency-reference-links">{consistencyReferences.map((url, index) => <a key={url} href={url} target="_blank" rel="noreferrer">Open reference {index + 1} ↗</a>)}</div>
+            <small className="consistency-note">Preparation only: this version does not automatically send images to ChatGPT or another image model.</small>
           </div>}
         </section>}
 
