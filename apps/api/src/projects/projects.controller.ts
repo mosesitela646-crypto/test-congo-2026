@@ -144,6 +144,71 @@ export class ProjectsController {
     return { success: true, masterReferenceId: referenceId };
   }
 
+
+  @Get(":id/characters/:characterId/consistency-kit")
+  async getCharacterConsistencyKit(
+    @Param("id") projectId: string,
+    @Param("characterId") characterId: string,
+    @Query("scene") scene = "",
+    @Query("outfit") outfit = "",
+    @Query("action") action = "",
+    @Query("environment") environment = "",
+    @Query("camera") camera = "",
+    @Query("style") style = ""
+  ) {
+    const character = await this.prisma.character.findFirst({
+      where: { id: characterId, projectId },
+      include: { references: { include: { asset: true }, orderBy: { version: "asc" } } }
+    });
+    if (!character) throw new NotFoundException("Character not found in this project.");
+
+    const profile = (character.canonicalProfile || {}) as Record<string, unknown>;
+    const master = character.references.find(reference => reference.label === "MASTER_REFERENCE");
+    const references = character.references.filter(reference => reference.asset).map(reference => ({
+      id: reference.id,
+      version: reference.version,
+      label: reference.label,
+      url: `/api/projects/${projectId}/assets/${reference.asset!.id}/file`
+    }));
+    const traits: [string, unknown][] = [
+      ["Role", profile.role], ["Age", profile.age], ["Skin tone", profile.skinTone],
+      ["Face", profile.face], ["Eyes", profile.eyes], ["Hair", profile.hair],
+      ["Body build", profile.build], ["Distinctive features", profile.distinguishingFeatures],
+      ["Personality", profile.personality]
+    ];
+    const identity = traits
+      .filter((item): item is [string, string] => typeof item[1] === "string" && item[1].trim().length > 0)
+      .map(([label, value]) => `- ${label}: ${value}`);
+    const continuity = typeof profile.consistencyNotes === "string" ? profile.consistencyNotes : "";
+    const signatureOutfit = typeof profile.defaultOutfit === "string" ? profile.defaultOutfit : "";
+    const prompt = [
+      `Create a cinematic image featuring the established character "${character.name}".`,
+      character.description ? `Character summary: ${character.description}` : "",
+      identity.length ? `CANONICAL IDENTITY (keep stable):\n${identity.join("\n")}` : "",
+      master ? "Use the attached MASTER REFERENCE as the primary identity source. Preserve the same recognizable face, facial proportions, skin tone, eye color, hair and body proportions. Do not redesign the character." : "No master image is registered; follow the canonical identity description.",
+      references.length > 1 ? `There are ${references.length - 1} additional visual references for this same character.` : "",
+      signatureOutfit ? `Signature outfit: ${signatureOutfit}` : "",
+      outfit.trim() ? `SCENE OUTFIT (may differ from signature outfit): ${outfit.trim()}` : "",
+      scene.trim() ? `SCENE: ${scene.trim()}` : "",
+      action.trim() ? `ACTION / EXPRESSION: ${action.trim()}` : "",
+      environment.trim() ? `ENVIRONMENT: ${environment.trim()}` : "",
+      camera.trim() ? `CAMERA / COMPOSITION: ${camera.trim()}` : "",
+      style.trim() ? `VISUAL STYLE: ${style.trim()}` : "",
+      continuity ? `CONTINUITY RULES: ${continuity}` : "",
+      "Only change details explicitly requested for this scene. Do not alter the character's identity, age, facial features, eye color, skin tone, hairstyle or distinctive marks."
+    ].filter(Boolean).join("\n\n");
+
+    return {
+      character: { id: character.id, name: character.name },
+      masterReference: master?.asset ? { version: master.version, url: `/api/projects/${projectId}/assets/${master.asset.id}/file` } : null,
+      references,
+      sceneInputs: { scene, outfit, action, environment, camera, style },
+      prompt,
+      status: "PROMPT_PACKAGE_ONLY",
+      note: "This prepares a prompt and reference URLs. It does not yet submit images to an image-generation model."
+    };
+  }
+
   @Get(":id/assets/:assetId/file")
   async getProjectAssetFile(
     @Param("id") projectId: string,
