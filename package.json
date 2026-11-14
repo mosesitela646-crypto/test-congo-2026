@@ -2,7 +2,9 @@
   "name": "congo-ai-studio",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "setup:windows": "powershell -ExecutionPolicy Bypass -File ./scripts/start-windows.ps1",
     "stop:windows": "powershell -ExecutionPolicy Bypass -File ./scripts/stop-windows.ps1",
@@ -14,7 +16,10 @@
     "typecheck:api": "npm run typecheck --workspace @congo-ai-studio/api",
     "db:generate": "npm run db:generate --workspace @congo-ai-studio/api",
     "db:validate": "npm run db:validate --workspace @congo-ai-studio/api",
-    "db:migrate": "npm run db:migrate --workspace @congo-ai-studio/api"
+    "db:migrate": "npm run db:migrate --workspace @congo-ai-studio/api",
+    "db:migrate:init": "npm run db:migrate --workspace @congo-ai-studio/api -- --name init"
   },
-  "engines": { "node": ">=20.11.0" }
+  "engines": {
+    "node": ">=20.11.0"
+  }
 }

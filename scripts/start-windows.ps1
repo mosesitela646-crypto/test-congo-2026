@@ -44,6 +44,10 @@ Write-Host "Checking database schema..." -ForegroundColor Yellow
 npm run db:validate
 if ($LASTEXITCODE -ne 0) { throw "Prisma schema validation failed." }
 
+Write-Host "Applying database migrations..." -ForegroundColor Yellow
+npm run db:migrate:init
+if ($LASTEXITCODE -ne 0) { throw "Database migration failed." }
+
 Write-Host "Opening web, API and AI service terminals..." -ForegroundColor Green
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$root'; npm run dev:web"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$root'; npm run dev:api"
