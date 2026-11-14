@@ -1,10 +1,15 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, NotFoundException, Param, ParseIntPipe, Patch, Post, Query } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, NotFoundException, Param, ParseIntPipe, Patch, Post, Query, UploadedFile, UseInterceptors, StreamableFile } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateProjectDto } from "./dto/create-project.dto";
 import { UpdateProjectDto } from "./dto/update-project.dto";
 import { CreateCharacterDto } from "./dto/create-character.dto";
 import { UpdateCharacterProfileDto } from "./dto/update-character-profile.dto";
-import { Prisma } from "@prisma/client";
+import { Prisma, AssetType } from "@prisma/client";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { diskStorage } from "multer";
+import { createReadStream, existsSync, mkdirSync } from "node:fs";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
 
 @Controller("projects")
 export class ProjectsController {
@@ -62,6 +67,108 @@ export class ProjectsController {
     return this.prisma.character.update({
       where: { id: characterId },
       data: { canonicalProfile: dto as unknown as Prisma.InputJsonObject }
+    });
+  }
+
+
+  @Post(":id/characters/:characterId/references")
+  @UseInterceptors(FileInterceptor("file", {
+    storage: diskStorage({
+      destination: (_req, _file, callback) => {
+        const directory = path.resolve(process.cwd(), "apps/api/uploads/characters");
+        mkdirSync(directory, { recursive: true });
+        callback(null, directory);
+      },
+      filename: (_req, file, callback) => {
+        const extensionByMime: Record<string, string> = {
+          "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"
+        };
+        callback(null, `${randomUUID()}${extensionByMime[file.mimetype] || ".img"}`);
+      }
+    }),
+    limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+    fileFilter: (_req, file, callback) => {
+      const allowed = ["image/jpeg", "image/png", "image/webp"];
+      if (!allowed.includes(file.mimetype)) return callback(new BadRequestException("Only JPG, PNG and WebP images are allowed."), false);
+      callback(null, true);
+    }
+  }))
+  async uploadCharacterReference(
+    @Param("id") projectId: string,
+    @Param("characterId") characterId: string,
+    @UploadedFile() file: any
+  ) {
+    if (!file) throw new BadRequestException("Choose an image file (JPG, PNG or WebP).");
+    const character = await this.prisma.character.findFirst({
+      where: { id: characterId, projectId }, select: { id: true, name: true }
+    });
+    if (!character) throw new NotFoundException("Character not found in this project.");
+
+    const latest = await this.prisma.characterReference.aggregate({
+      where: { characterId }, _max: { version: true }
+    });
+    const version = (latest._max.version || 0) + 1;
+    const isFirst = version === 1;
+    const asset = await this.prisma.asset.create({
+      data: {
+        name: `${character.name} reference v${version}`,
+        type: AssetType.IMAGE,
+        mimeType: file.mimetype,
+        storageKey: file.filename,
+        projectId,
+        metadata: { originalName: file.originalname, size: file.size, category: "character-reference" }
+      }
+    });
+    const reference = await this.prisma.characterReference.create({
+      data: {
+        characterId, assetId: asset.id, version,
+        label: isFirst ? "MASTER_REFERENCE" : "VISUAL_REFERENCE",
+        description: isFirst ? "Initial master visual reference" : "Additional visual reference"
+      },
+      include: { asset: true }
+    });
+    return { ...reference, isMaster: isFirst, fileUrl: `/api/projects/${projectId}/assets/${asset.id}/file` };
+  }
+
+  @Patch(":id/characters/:characterId/references/:referenceId/master")
+  async setMasterCharacterReference(
+    @Param("id") projectId: string,
+    @Param("characterId") characterId: string,
+    @Param("referenceId") referenceId: string
+  ) {
+    const reference = await this.prisma.characterReference.findFirst({
+      where: { id: referenceId, characterId, character: { projectId } },
+      select: { id: true }
+    });
+    if (!reference) throw new NotFoundException("Character reference not found in this project.");
+    await this.prisma.$transaction([
+      this.prisma.characterReference.updateMany({
+        where: { characterId }, data: { label: "VISUAL_REFERENCE" }
+      }),
+      this.prisma.characterReference.update({
+        where: { id: referenceId }, data: { label: "MASTER_REFERENCE" }
+      })
+    ]);
+    return { success: true, masterReferenceId: referenceId };
+  }
+
+  @Get(":id/assets/:assetId/file")
+  async getProjectAssetFile(
+    @Param("id") projectId: string,
+    @Param("assetId") assetId: string
+  ) {
+    const asset = await this.prisma.asset.findFirst({
+      where: { id: assetId, projectId, type: AssetType.IMAGE }
+    });
+    if (!asset) throw new NotFoundException("Image asset not found.");
+    const directory = path.resolve(process.cwd(), "apps/api/uploads/characters");
+    const filePath = path.resolve(directory, path.basename(asset.storageKey));
+    if (!filePath.startsWith(directory + path.sep) || !existsSync(filePath)) {
+      throw new NotFoundException("Image file is missing from local storage.");
+    }
+    return new StreamableFile(createReadStream(filePath), {
+      type: asset.mimeType || "application/octet-stream",
+      disposition: `inline; filename="${path.basename(filePath)}"`
     });
   }
 
